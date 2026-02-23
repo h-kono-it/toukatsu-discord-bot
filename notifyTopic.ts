@@ -41,9 +41,7 @@ export async function notifyTopic() {
       return;
     }
 
-    // ランダムに話題を選択
-    const randomIndex = Math.floor(Math.random() * TOPICS.length);
-    const topic = TOPICS[randomIndex];
+    const topic = await choiceTopic();
 
     const embed: APIEmbed = {
       title: "💬 今日の話題",
@@ -56,4 +54,22 @@ export async function notifyTopic() {
   } catch (error) {
     console.error("❌ 話題の投稿中にエラーが発生しました:", error);
   }
+}
+
+
+async function choiceTopic() : Promise<string> {
+  const kv = await Deno.openKv();
+  const stored = await kv.get<string[]>(["topics", "used"]);
+
+  // 全話題を使い切ったらリセット
+  const usedTopics = (stored.value?.length ?? 0) >= TOPICS.length
+    ? []
+    : (stored.value ?? []);
+
+  const remaining = TOPICS.filter(t => !usedTopics.includes(t));
+  const topic = remaining[Math.floor(Math.random() * remaining.length)];
+
+  await kv.set(["topics", "used"], [...usedTopics, topic]);
+
+  return topic;
 }
