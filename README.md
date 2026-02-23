@@ -42,7 +42,8 @@ deno task dev
 
 ## コントリビューション
 
-コントリビューションを歓迎します！詳細は [CONTRIBUTING.md](CONTRIBUTING.md) を参照してください。
+コントリビューションを歓迎します！詳細は [CONTRIBUTING.md](CONTRIBUTING.md)
+を参照してください。
 
 ## ライセンス
 

@@ -56,8 +56,7 @@ export async function notifyTopic() {
   }
 }
 
-
-async function choiceTopic() : Promise<string> {
+async function choiceTopic(): Promise<string> {
   const kv = await Deno.openKv();
   const stored = await kv.get<string[]>(["topics", "used"]);
 
@@ -66,7 +65,7 @@ async function choiceTopic() : Promise<string> {
     ? []
     : (stored.value ?? []);
 
-  const remaining = TOPICS.filter(t => !usedTopics.includes(t));
+  const remaining = TOPICS.filter((t) => !usedTopics.includes(t));
   const topic = remaining[Math.floor(Math.random() * remaining.length)];
 
   await kv.set(["topics", "used"], [...usedTopics, topic]);
