@@ -158,7 +158,9 @@ export async function notifyNewMusics() {
 
   // 3. スナップショットIDを比較して変更をチェック
   if (latestData.snapshotId === lastSnapshotId) {
-    console.log("ℹ️ スナップショットIDが一致しました。プレイリストに変更はありません。");
+    console.log(
+      "ℹ️ スナップショットIDが一致しました。プレイリストに変更はありません。",
+    );
     kv.close();
     return;
   }

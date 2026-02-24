@@ -4,16 +4,18 @@
 
 ## Issue の報告
 
-バグの報告や機能リクエストは [GitHub Issues](https://github.com/h-kono-it/toukatsu-discord-bot/issues) から行ってください。
+バグの報告や機能リクエストは
+[GitHub Issues](https://github.com/h-kono-it/toukatsu-discord-bot/issues)
+から行ってください。
 
 Issue には以下のラベルを付けてください：
 
-| ラベル | 説明 |
-|--------|------|
-| `general` | 全般的な改善・バグ修正 |
-| `spotify` | Spotify 新曲通知に関する変更 |
+| ラベル        | 説明                           |
+| ------------- | ------------------------------ |
+| `general`     | 全般的な改善・バグ修正         |
+| `spotify`     | Spotify 新曲通知に関する変更   |
 | `forum_board` | フォーラム募集通知に関する変更 |
-| `thema_talk` | 話題提供機能に関する変更 |
+| `thema_talk`  | 話題提供機能に関する変更       |
 
 ## 開発の流れ
 
