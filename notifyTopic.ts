@@ -5,6 +5,12 @@ import { initRestClient, sendDiscordNotification } from "./notifyDiscord.ts";
 const TOPIC_CHANNEL_ID = Deno.env.get("TOPIC_CHANNEL_ID") ||
   "YOUR_TOPIC_CHANNEL_ID";
 
+const ENGLISH_TOPIC_CHANNEL_ID = Deno.env.get("ENGLISH_TOPIC_CHANNEL_ID") ||
+  "YOUR_ENGLISH_TOPIC_CHANNEL_ID";
+
+// 言語が増えるようであれば連想配列等、持ち方を考える
+// keyを言語にして、チャンネル、話題のセットを持つイメージ？話題の日英をペアで持つほうがいいかも
+
 // 話題のパターン（ここに話題を追加してください）
 const TOPICS: string[] = [
   "一番最近行った外食はどんなお店でしたか？（チェーン店でもOKです！）",
@@ -23,12 +29,32 @@ const TOPICS: string[] = [
   "昔住んでいた場所の思い出を一つ教えてください！",
 ];
 
+// 英語版の話題のパターン
+const TOPICS_EN: string[] = [
+  "What kind of restaurant did you visit most recently? (Chain restaurants are welcome too!)",
+  "Share a link to a tech article or news you recently found interesting!",
+  "Tell us about a hobby or something you enjoy outside of engineering!",
+  "What are your favorite features or quirks of your editor or IDE?",
+  "Tell us about a place or travel destination you'd like to visit!",
+  "Share your recommended spots from your hometown!",
+  "Since you're in <place>, you have to try <menu item> at <restaurant>!!",
+  "If there's someone you'd like to thank, share it here!",
+  "Is there anything engineering-related you've been wanting to try lately?",
+  "Is there a hobby outside of engineering that you've recently become interested in or started?",
+  "Tell us what you like or take pride in about your daily work setup!",
+  "Share something you've bought recently that you're really glad you got!",
+  "Share a heartwarming news story you've come across recently!",
+  "Share one fond memory from a place you used to live!",
+];
+
 /**
  * ランダムで話題を特定チャンネルに投稿する。
  * 直前の投稿がbotの場合は投稿をスキップする。
  */
-export async function notifyTopic() {
-  if (TOPICS.length === 0) {
+export async function notifyTopic(english: boolean = false): Promise<void> {
+  const topics = english ? TOPICS_EN : TOPICS;
+  const channelId = english ? ENGLISH_TOPIC_CHANNEL_ID : TOPIC_CHANNEL_ID;
+  if (topics.length === 0) {
     console.log("話題が登録されていません。TOPICSに話題を追加してください。");
     return;
   }
@@ -38,7 +64,7 @@ export async function notifyTopic() {
   try {
     // 直前のメッセージを取得して、botの投稿かどうか確認する
     const messages = await rest.get(
-      Routes.channelMessages(TOPIC_CHANNEL_ID),
+      Routes.channelMessages(channelId),
       { query: new URLSearchParams({ limit: "1" }) },
     ) as APIMessage[];
 
@@ -47,34 +73,40 @@ export async function notifyTopic() {
       return;
     }
 
-    const topic = await choiceTopic();
+    const topic = await choiceTopic(topics, english);
+
+    const title = english ? "💬 Today's Topic" : "💬 今日の話題";
 
     const embed: APIEmbed = {
-      title: "💬 今日の話題",
+      title: title,
       description: topic,
       color: 0x57F287,
       timestamp: new Date().toISOString(),
     };
 
-    await sendDiscordNotification(rest, TOPIC_CHANNEL_ID, embed);
+    await sendDiscordNotification(rest, channelId, embed);
   } catch (error) {
     console.error("❌ 話題の投稿中にエラーが発生しました:", error);
   }
 }
 
-async function choiceTopic(): Promise<string> {
+async function choiceTopic(
+  topics: string[],
+  english: boolean,
+): Promise<string> {
   const kv = await Deno.openKv();
-  const stored = await kv.get<string[]>(["topics", "used"]);
+  const key = english ? ["topics", "used_en"] : ["topics", "used"];
+  const stored = await kv.get<string[]>(key);
 
   // 全話題を使い切ったらリセット
-  const usedTopics = (stored.value?.length ?? 0) >= TOPICS.length
+  const usedTopics = (stored.value?.length ?? 0) >= topics.length
     ? []
     : (stored.value ?? []);
 
-  const remaining = TOPICS.filter((t) => !usedTopics.includes(t));
+  const remaining = topics.filter((t) => !usedTopics.includes(t));
   const topic = remaining[Math.floor(Math.random() * remaining.length)];
 
-  await kv.set(["topics", "used"], [...usedTopics, topic]);
+  await kv.set(key, [...usedTopics, topic]);
 
   return topic;
 }

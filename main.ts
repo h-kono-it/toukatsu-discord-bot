@@ -42,7 +42,7 @@ Deno.cron(
 
 /**
  * ランダムで話題を特定チャンネルに投稿する周期の定義
- * 毎週火曜日の10時00分 JST
+ * 毎週月曜日の10時00分 JST
  */
 Deno.cron(
   "Random Topic Notification",
@@ -54,6 +54,26 @@ Deno.cron(
       return;
     }
     await notifyTopic();
+    console.log("--- Deno Cron 実行終了 ---");
+  },
+);
+
+/**
+ * ランダムで話題を英語で特定チャンネルに投稿する周期の定義
+ * 毎週木曜日の10時00分 JST
+ */
+Deno.cron(
+  "Random Topic Notification",
+  "0 10 * * 5",
+  async () => {
+    console.log("--- Deno Cron 実行開始 (英語の話題提供) ---");
+    if (await isPreview()) {
+      console.log(
+        "プレビューモードのため、話題の提供（英語）をスキップします。",
+      );
+      return;
+    }
+    await notifyTopic(true);
     console.log("--- Deno Cron 実行終了 ---");
   },
 );
