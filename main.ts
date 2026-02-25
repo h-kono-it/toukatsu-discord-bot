@@ -63,7 +63,7 @@ Deno.cron(
  * 毎週木曜日の10時00分 JST
  */
 Deno.cron(
-  "Random Topic Notification",
+  "Random English Topic Notification",
   "0 10 * * 5",
   async () => {
     console.log("--- Deno Cron 実行開始 (英語の話題提供) ---");
