@@ -158,7 +158,10 @@ async function fetchTrackDetails(
         } catch {
           errorMessage += `\nRaw Body: ${errorBody}`;
         }
-        console.error(`❌ トラック ${id} の詳細情報の取得に失敗:`, errorMessage);
+        console.error(
+          `❌ トラック ${id} の詳細情報の取得に失敗:`,
+          errorMessage,
+        );
         return null;
       }
       return await res.json() as SpotifyTrack;
@@ -187,7 +190,8 @@ function buildNotificationEmbed(
 
   return {
     title: `📢 「東葛.devのお気に入り」新曲追加通知`,
-    description: `新曲が${totalAddedCount}曲追加されました！ぜひ聞いてみてください。`,
+    description:
+      `新曲が${totalAddedCount}曲追加されました！ぜひ聞いてみてください。`,
     color: 0x5865F2, // Discordカラー (Blurple)
     fields,
     timestamp: new Date().toISOString(),
