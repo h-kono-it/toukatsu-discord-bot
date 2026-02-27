@@ -1,5 +1,7 @@
-// 必要な型やライブラリをインポート
-// Denoの組み込みfetch()を使用します
+/**
+ * @file Spotifyプレイリストの変更を検知し、Discordに通知するモジュール。
+ * Denoの組み込みfetch()とDeno KVを使用する。
+ */
 
 import { APIEmbed } from "discord.js";
 import { initRestClient, sendDiscordNotification } from "./notifyDiscord.ts";
@@ -16,11 +18,12 @@ const DETAIL_LINK =
 // 🎧 チェック対象のプレイリストID
 const PLAYLIST_ID = "78PN9O8cF563eazR5lT4tu"; // 例: Spotifyの公開プレイリストID
 
-// 🛠️ Deno KVのキーを定義
+/** Deno KVのスナップショットIDキー */
 const KV_KEY_SNAPSHOT = ["spotify", PLAYLIST_ID, "snapshot_id"];
+/** Deno KVのトラックIDリストキー */
 const KV_KEY_TRACKS = ["spotify", PLAYLIST_ID, "track_ids"];
 
-// 通知表示上限
+/** 通知で表示するトラック数の上限 */
 const MAX_DISPLAY = 10;
 
 interface SpotifyTokenResponse {
@@ -49,9 +52,12 @@ interface SpotifyPlaylistTracksData {
   items: SpotifyPlaylistItem[];
 }
 
-// ----------------------------------------------------
-// 認証処理: Client Credentials Flow (公開プレイリストなので利用可)
-// ----------------------------------------------------
+/**
+ * Spotifyのアクセストークンを取得する。
+ * 公開プレイリストへのアクセスにはClient Credentials Flowを使用する。
+ * @returns アクセストークン文字列
+ * @throws アクセストークンの取得に失敗した場合
+ */
 async function getAccessToken(): Promise<string> {
   const authHeader = btoa(`${CLIENT_ID}:${CLIENT_SECRET}`);
 
@@ -83,10 +89,13 @@ async function getAccessToken(): Promise<string> {
   return data.access_token;
 }
 
-// ----------------------------------------------------
-// Spotify APIからプレイリストの情報を取得
-// ----------------------------------------------------
-/** プレイリストのメタデータとトラックリストを取得する */
+/**
+ * Spotify APIからプレイリストのメタデータとトラックIDリストを取得する。
+ * @param accessToken Spotifyのアクセストークン
+ * @param playlistId 取得対象のプレイリストID
+ * @returns スナップショットIDとトラックIDの配列
+ * @throws APIリクエストに失敗した場合
+ */
 async function fetchPlaylistData(
   accessToken: string,
   playlistId: string,
@@ -104,7 +113,7 @@ async function fetchPlaylistData(
   const metaData = await metaRes.json() as SpotifyPlaylistMetaData;
   const snapshotId = metaData.snapshot_id;
 
-  // 2. トラックリストの取得 (ページネーションは省略)
+  // トラックリストの取得 (ページネーションは省略、上限100件)
   const tracksRes = await fetch(
     `https://api.spotify.com/v1/playlists/${playlistId}/items?fields=items(track(id))&limit=100`,
     {
@@ -123,9 +132,12 @@ async function fetchPlaylistData(
   return { snapshotId, trackIds };
 }
 
-// ----------------------------------------------------
-// 差分計算: 追加されたトラックIDを特定
-// ----------------------------------------------------
+/**
+ * 最新のトラックIDリストと保存済みIDセットを比較し、新規追加分を返す。
+ * @param latestTrackIds 最新のトラックIDの配列
+ * @param lastTrackIds 前回保存済みのトラックIDのセット
+ * @returns 新たに追加されたトラックIDの配列
+ */
 function findAddedTrackIds(
   latestTrackIds: string[],
   lastTrackIds: Set<string>,
@@ -133,9 +145,12 @@ function findAddedTrackIds(
   return latestTrackIds.filter((id) => !lastTrackIds.has(id));
 }
 
-// ----------------------------------------------------
-// トラック詳細情報の取得 (最大MAX_DISPLAY件)
-// ----------------------------------------------------
+/**
+ * 指定されたトラックIDの詳細情報をSpotify APIから取得する（最大{@link MAX_DISPLAY}件）。
+ * @param accessToken Spotifyのアクセストークン
+ * @param trackIds 詳細情報を取得するトラックIDの配列
+ * @returns 取得成功したトラック情報の配列
+ */
 async function fetchTrackDetails(
   accessToken: string,
   trackIds: string[],
@@ -171,9 +186,12 @@ async function fetchTrackDetails(
   return results.filter((t): t is SpotifyTrack => t !== null);
 }
 
-// ----------------------------------------------------
-// Discord Embed の作成
-// ----------------------------------------------------
+/**
+ * 新曲追加通知用のDiscord Embedオブジェクトを生成する。
+ * @param tracks 通知に含めるトラック情報の配列
+ * @param totalAddedCount 実際に追加されたトラックの総数（表示上限超過分も含む）
+ * @returns Discord APIに送信するEmbedオブジェクト
+ */
 function buildNotificationEmbed(
   tracks: SpotifyTrack[],
   totalAddedCount: number,
@@ -199,9 +217,11 @@ function buildNotificationEmbed(
   };
 }
 
-// ----------------------------------------------------
-// 追加された曲をDiscordに通知する
-// ----------------------------------------------------
+/**
+ * 追加されたトラックの詳細を取得し、Discordチャンネルに通知する。
+ * @param accessToken Spotifyのアクセストークン
+ * @param addedTrackIds 新規追加されたトラックIDの配列
+ */
 async function notifyAddedTracks(
   accessToken: string,
   addedTrackIds: string[],
@@ -220,9 +240,12 @@ async function notifyAddedTracks(
   await sendDiscordNotification(rest, MESSAGE_TARGET_CHANNEL_ID, embed);
 }
 
-// ----------------------------------------------------
-// Deno KV の更新
-// ----------------------------------------------------
+/**
+ * Deno KVにプレイリストの最新スナップショットIDとトラックIDを保存する。
+ * @param kv Deno KVインスタンス
+ * @param snapshotId 保存するスナップショットID
+ * @param trackIds 保存するトラックIDの配列
+ */
 async function updateKvSnapshot(
   kv: Deno.Kv,
   snapshotId: string,
@@ -240,9 +263,10 @@ async function updateKvSnapshot(
   }
 }
 
-// ----------------------------------------------------
-// メイン処理
-// ----------------------------------------------------
+/**
+ * Spotifyプレイリストの変更を検知し、新規追加曲をDiscordに通知するメイン処理。
+ * スナップショットIDをDeno KVで管理し、変更があった場合のみ通知する。
+ */
 export async function notifyNewMusics() {
   const kv = await Deno.openKv();
   console.log("--- Spotify プレイリスト変更チェックを開始 ---");
