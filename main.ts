@@ -57,3 +57,5 @@ Deno.cron(
     console.log("--- Deno Cron 実行終了 ---");
   },
 );
+
+Deno.serve(() => new Response("NOT FOUND", { status: 404 }));
