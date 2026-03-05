@@ -73,7 +73,15 @@ export async function notifyTopic(english: boolean = false): Promise<void> {
       return;
     }
 
-    const topic = await choiceTopic(topics, english);
+    const kv = await Deno.openKv();
+    const key = english ? ["topics", "used_en"] : ["topics", "used"];
+    const stored = await kv.get<string[]>(key);
+    const usedTopics = (stored.value?.length ?? 0) >= topics.length
+      ? []
+      : (stored.value ?? []);
+
+    const { topic, updatedUsed } = choiceTopic(topics, usedTopics);
+    await kv.set(key, updatedUsed);
 
     const title = english ? "💬 Today's Topic" : "💬 今日の話題";
 
@@ -90,23 +98,18 @@ export async function notifyTopic(english: boolean = false): Promise<void> {
   }
 }
 
-async function choiceTopic(
+/**
+ * 話題をランダムに選択する（純粋関数）
+ * 重複を避けるため、使用済み話題を受け取り、次の状態を返す。
+ * @param topics 話題の配列
+ * @param usedTopics 使用済み話題の配列
+ * @returns 選択された話題と更新後の使用済み話題
+ */
+function choiceTopic(
   topics: string[],
-  english: boolean,
-): Promise<string> {
-  const kv = await Deno.openKv();
-  const key = english ? ["topics", "used_en"] : ["topics", "used"];
-  const stored = await kv.get<string[]>(key);
-
-  // 全話題を使い切ったらリセット
-  const usedTopics = (stored.value?.length ?? 0) >= topics.length
-    ? []
-    : (stored.value ?? []);
-
+  usedTopics: string[],
+): { topic: string; updatedUsed: string[] } {
   const remaining = topics.filter((t) => !usedTopics.includes(t));
   const topic = remaining[Math.floor(Math.random() * remaining.length)];
-
-  await kv.set(key, [...usedTopics, topic]);
-
-  return topic;
+  return { topic, updatedUsed: [...usedTopics, topic] };
 }

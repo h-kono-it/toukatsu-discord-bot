@@ -26,6 +26,8 @@ const KV_KEY_TRACKS = ["spotify", PLAYLIST_ID, "track_ids"];
 /** 通知で表示するトラック数の上限 */
 const MAX_DISPLAY = 10;
 
+const SPOTIFY_API_BASE = "https://api.spotify.com/v1";
+
 interface SpotifyTokenResponse {
   access_token: string;
   token_type: string;
@@ -102,7 +104,7 @@ async function fetchPlaylistData(
 ): Promise<{ snapshotId: string; trackIds: string[] }> {
   // 1. メタデータ (snapshot_id) の取得
   const metaRes = await fetch(
-    `https://api.spotify.com/v1/playlists/${playlistId}?fields=snapshot_id,tracks.total`,
+    `${SPOTIFY_API_BASE}/playlists/${playlistId}?fields=snapshot_id,tracks.total`,
     {
       headers: { "Authorization": `Bearer ${accessToken}` },
     },
@@ -115,7 +117,7 @@ async function fetchPlaylistData(
 
   // トラックリストの取得 (ページネーションは省略、上限100件)
   const tracksRes = await fetch(
-    `https://api.spotify.com/v1/playlists/${playlistId}/items?fields=items(track(id))&limit=100`,
+    `${SPOTIFY_API_BASE}/playlists/${playlistId}/items?fields=items(track(id))&limit=100`,
     {
       headers: { "Authorization": `Bearer ${accessToken}` },
     },
@@ -160,7 +162,7 @@ async function fetchTrackDetails(
 
   const results = await Promise.all(
     targetIds.map(async (id) => {
-      const res = await fetch(`https://api.spotify.com/v1/tracks/${id}`, {
+      const res = await fetch(`${SPOTIFY_API_BASE}/tracks/${id}`, {
         headers: { "Authorization": `Bearer ${accessToken}` },
       });
       if (!res.ok) {
